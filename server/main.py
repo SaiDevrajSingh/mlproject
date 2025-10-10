@@ -4,7 +4,7 @@ import logging
 import joblib
 from pathlib import Path
 from fastapi import FastAPI, HTTPException, Request, Header
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
 from pydantic import BaseModel, Field, validator
 from typing import Optional
 from dotenv import load_dotenv
@@ -86,6 +86,124 @@ def _load_model(model_path: str):
 def on_startup():
     logger.info("Starting up %s", APP_NAME)
     _load_model(DEFAULT_MODEL_PATH)
+
+
+@app.get("/", response_class=HTMLResponse)
+def home():
+    return """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>CSK IPL Prediction API</title>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 40px; background: #f5f5f5; }
+            .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+            h1 { color: #2c3e50; text-align: center; }
+            .form-group { margin: 15px 0; }
+            label { display: block; margin-bottom: 5px; font-weight: bold; }
+            input, select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
+            button { background: #3498db; color: white; padding: 12px 30px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
+            button:hover { background: #2980b9; }
+            .result { margin-top: 20px; padding: 15px; background: #ecf0f1; border-radius: 5px; }
+            .win { background: #d5f4e6; border-left: 4px solid #27ae60; }
+            .loss { background: #fadbd8; border-left: 4px solid #e74c3c; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>🏏 CSK IPL Win Prediction</h1>
+            <p>Predict Chennai Super Kings' chances of winning an IPL match!</p>
+            
+            <form id="predictionForm">
+                <div class="form-group">
+                    <label>Season:</label>
+                    <input type="number" id="season" value="2025" min="2008" max="2030">
+                </div>
+                
+                <div class="form-group">
+                    <label>Venue:</label>
+                    <input type="text" id="venue" value="MA Chidambaram Stadium, Chepauk" placeholder="Enter venue name">
+                </div>
+                
+                <div class="form-group">
+                    <label>City:</label>
+                    <input type="text" id="city" value="Chennai" placeholder="Enter city">
+                </div>
+                
+                <div class="form-group">
+                    <label>Stage:</label>
+                    <select id="stage">
+                        <option value="league">League</option>
+                        <option value="qualifier">Qualifier</option>
+                        <option value="eliminator">Eliminator</option>
+                        <option value="final">Final</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Match Number:</label>
+                    <input type="number" id="match_number" value="10" min="1" max="100">
+                </div>
+                
+                <div class="form-group">
+                    <label>Opponent:</label>
+                    <input type="text" id="opponent" value="Mumbai Indians" placeholder="Enter opponent team">
+                </div>
+                
+                <button type="submit">🔮 Predict CSK Win Probability</button>
+            </form>
+            
+            <div id="result" class="result" style="display: none;"></div>
+        </div>
+        
+        <script>
+            document.getElementById('predictionForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const data = {
+                    season: parseInt(document.getElementById('season').value),
+                    venue: document.getElementById('venue').value,
+                    city: document.getElementById('city').value,
+                    stage: document.getElementById('stage').value,
+                    match_number: parseInt(document.getElementById('match_number').value),
+                    opponent: document.getElementById('opponent').value
+                };
+                
+                try {
+                    const response = await fetch('/predict-prematch', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+                    
+                    const result = await response.json();
+                    const resultDiv = document.getElementById('result');
+                    
+                    if (result.predicted_win) {
+                        resultDiv.className = 'result win';
+                        resultDiv.innerHTML = `
+                            <h3>🎉 CSK is predicted to WIN!</h3>
+                            <p><strong>Win Probability:</strong> ${(result.win_probability * 100).toFixed(1)}%</p>
+                            <p><strong>Confidence:</strong> ${result.win_probability > 0.7 ? 'High' : result.win_probability > 0.5 ? 'Medium' : 'Low'}</p>
+                        `;
+                    } else {
+                        resultDiv.className = 'result loss';
+                        resultDiv.innerHTML = `
+                            <h3>😔 CSK is predicted to LOSE</h3>
+                            <p><strong>Win Probability:</strong> ${(result.win_probability * 100).toFixed(1)}%</p>
+                            <p><strong>Confidence:</strong> ${result.win_probability < 0.3 ? 'High' : result.win_probability < 0.5 ? 'Medium' : 'Low'}</p>
+                        `;
+                    }
+                    
+                    resultDiv.style.display = 'block';
+                } catch (error) {
+                    alert('Error: ' + error.message);
+                }
+            });
+        </script>
+    </body>
+    </html>
+    """
 
 
 @app.get("/health")
