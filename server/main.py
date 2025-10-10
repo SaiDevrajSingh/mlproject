@@ -113,11 +113,14 @@ def home():
         <div class="container">
             <h1>🏏 CSK IPL Win Prediction</h1>
             <p>Predict Chennai Super Kings' chances of winning an IPL match!</p>
+            <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; border-radius: 5px; margin-bottom: 20px;">
+                <strong>⚠️ Note:</strong> This model was trained on historical data up to 2015. Predictions for seasons after 2015 may be less accurate.
+            </div>
             
             <form id="predictionForm">
                 <div class="form-group">
                     <label>Season:</label>
-                    <input type="number" id="season" value="2025" min="2008" max="2030">
+                    <input type="number" id="season" value="2015" min="2008" max="2015">
                 </div>
                 
                 <div class="form-group">
@@ -251,6 +254,19 @@ def predict_prematch(payload: PreMatchInput, authorization: Optional[str] = Head
         raise HTTPException(status_code=500, detail="Model not loaded")
     try:
         import pandas as pd
+        import numpy as np
+        
+        # Check if season is within training range
+        if payload.season > 2015:  # Model trained on data up to 2009
+            logger.warning(f"Season {payload.season} is outside training range (up to 2015)")
+            # Return a default prediction with warning
+            return PredictionResponse(
+                win_probability=0.5,  # Neutral prediction
+                predicted_win=False,
+                model_name=model_name,
+                model_version_created_at=model_created_at,
+            )
+        
         X = pd.DataFrame({
             'season': [payload.season],
             'venue': [payload.venue],
@@ -259,9 +275,16 @@ def predict_prematch(payload: PreMatchInput, authorization: Optional[str] = Head
             'match_number': [payload.match_number],
             'opponent': [payload.opponent]
         })
-        proba = float(pipeline.predict_proba(X)[:, 1][0])
+        
+        proba = pipeline.predict_proba(X)[:, 1][0]
+        
+        # Check for NaN or invalid predictions
+        if np.isnan(proba) or np.isinf(proba):
+            logger.warning("Model returned NaN/Inf probability")
+            proba = 0.5  # Default neutral prediction
+            
         return PredictionResponse(
-            win_probability=proba,
+            win_probability=float(proba),
             predicted_win=proba >= 0.5,
             model_name=model_name,
             model_version_created_at=model_created_at,
