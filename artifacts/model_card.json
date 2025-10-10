@@ -1,0 +1,28 @@
+{
+  "project": "CSK IPL Performance - Pre-match Win Probability",
+  "model_name": "XGBoost",
+  "created_at": "2025-10-10T14:53:31Z",
+  "features": [
+    "season",
+    "venue",
+    "city",
+    "stage",
+    "match_number",
+    "opponent"
+  ],
+  "use_post_toss": false,
+  "training_rows": 33,
+  "test_rows": 9,
+  "temporal_cutoff_season": 2009,
+  "metrics_temporal_test": {
+    "accuracy": 0.5555555555555556,
+    "f1_score": 0.6666666666666666,
+    "roc_auc": 0.8
+  },
+  "version": "1.1.0",
+  "calibrated": true,
+  "metrics_temporal_test_calibrated": {
+    "roc_auc": 0.19999999999999998,
+    "brier": 0.2776576097177593
+  }
+}
