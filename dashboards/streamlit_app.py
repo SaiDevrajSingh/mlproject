@@ -18,7 +18,7 @@ import json
 # Page configuration
 st.set_page_config(
     page_title="CSK IPL Prediction",
-    page_icon="🏏",
+    page_icon="⚡",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -237,7 +237,7 @@ def load_prediction_model():
 
 def main():
     # Header
-    st.markdown('<h1 class="main-header">🏏 CSK IPL Performance Predictor</h1>', unsafe_allow_html=True)
+    st.markdown('<h1 class="main-header">CSK IPL Performance Predictor</h1>', unsafe_allow_html=True)
     st.markdown('<p style="text-align: center; font-size: 1.2rem; color: #666;">Predict Chennai Super Kings match outcomes using advanced analytics</p>', unsafe_allow_html=True)
     
     # Load model (only once)
@@ -247,13 +247,13 @@ def main():
         st.session_state.model_loaded = loaded
         
         if loaded:
-            st.success("✅ Advanced CSK prediction model ready!", icon="🏏")
+            st.success("Advanced CSK prediction model ready!")
         else:
             st.error("❌ Failed to load prediction model")
             return
     
     # Sidebar for inputs
-    st.sidebar.header("🏏 Match Configuration")
+    st.sidebar.header("Match Configuration")
     
     # Season selection
     season = st.sidebar.selectbox(
@@ -331,7 +331,7 @@ def main():
     
     # Prediction button
     predict_button = st.sidebar.button(
-        "🔮 Predict Match Outcome",
+        "Predict Match Outcome",
         type="primary",
         use_container_width=True
     )
@@ -376,7 +376,7 @@ def display_prediction_results(input_data, predicted_win, win_probability, resul
                 f"""
                 <div class="prediction-card">
                     <h2 style="text-align: center; margin: 0; color: #006400;">
-                        🏆 CSK PREDICTED TO WIN!
+                        CSK PREDICTED TO WIN!
                     </h2>
                     <h3 style="text-align: center; margin: 10px 0; color: #006400;">
                         Win Probability: {win_probability:.1%}
@@ -392,7 +392,7 @@ def display_prediction_results(input_data, predicted_win, win_probability, resul
                 f"""
                 <div class="prediction-card" style="background: linear-gradient(135deg, #FF6B6B, #FF8E8E);">
                     <h2 style="text-align: center; margin: 0; color: #8B0000;">
-                        😔 CSK PREDICTED TO LOSE
+                        CSK PREDICTED TO LOSE
                     </h2>
                     <h3 style="text-align: center; margin: 10px 0; color: #8B0000;">
                         Win Probability: {win_probability:.1%}
@@ -410,7 +410,7 @@ def display_prediction_results(input_data, predicted_win, win_probability, resul
     
     # Enhanced Key factors analysis with proof
     if result and result.get('key_factors'):
-        st.subheader("🔍 Detailed Factor Analysis & Evidence")
+        st.subheader("Detailed Factor Analysis & Evidence")
         
         # Create factor impact visualization
         factor_names = []
@@ -459,7 +459,7 @@ def display_prediction_results(input_data, predicted_win, win_probability, resul
             st.plotly_chart(fig, use_container_width=True)
         
         # Detailed factor explanations
-        st.markdown("### 📋 Factor Explanations")
+        st.markdown("### Factor Explanations")
         
         for i, (factor, description) in enumerate(result['key_factors'].items()):
             impact = factor_impacts[i] if i < len(factor_impacts) else 0
@@ -479,13 +479,13 @@ def display_prediction_results(input_data, predicted_win, win_probability, resul
     
     # Confidence factors
     if result and result.get('confidence_factors'):
-        st.subheader("📊 Confidence Factors")
+        st.subheader("Confidence Factors")
         
         factors_text = " • ".join(result['confidence_factors'])
         st.info(f"**Factors considered:** {factors_text}")
     
     # Match summary
-    st.subheader("📋 Match Summary")
+    st.subheader("Match Summary")
     col1, col2 = st.columns(2)
     
     with col1:
@@ -501,7 +501,7 @@ def display_prediction_results(input_data, predicted_win, win_probability, resul
     # Model info
     if result and result.get('model_info'):
         model_info = result['model_info']
-        st.subheader("🤖 Model Information")
+        st.subheader("Model Information")
         
         info_col1, info_col2, info_col3 = st.columns(3)
         
@@ -552,13 +552,13 @@ def display_dashboard():
     # Welcome section with enhanced styling
     st.markdown("""
     <div style="background: linear-gradient(90deg, #FFD700, #FFA500); padding: 20px; border-radius: 10px; margin-bottom: 20px;">
-        <h2 style="color: #8B4513; text-align: center; margin: 0;">🏏 Welcome to the Advanced CSK Match Predictor!</h2>
+        <h2 style="color: #8B4513; text-align: center; margin: 0;">Welcome to the Advanced CSK Match Predictor!</h2>
         <p style="color: #8B4513; text-align: center; margin: 5px 0 0 0;">Powered by comprehensive data analysis and machine learning insights</p>
     </div>
     """, unsafe_allow_html=True)
     
     # CSK Performance Analytics Dashboard
-    st.subheader("📊 CSK Performance Analytics Dashboard")
+    st.subheader("CSK Performance Analytics Dashboard")
     
     # Key metrics with enhanced styling
     col1, col2, col3, col4 = st.columns(4)
@@ -600,21 +600,21 @@ def display_dashboard():
         """, unsafe_allow_html=True)
     
     # EDA Insights Section
-    st.subheader("🔍 Data Analysis Insights")
+    st.subheader("Data Analysis Insights")
     
     # Create comprehensive visualizations
     create_eda_visualizations()
     
     # Performance Analysis
-    st.subheader("📈 Historical Performance Analysis")
+    st.subheader("Historical Performance Analysis")
     create_performance_charts()
     
     # Prediction Model Insights
-    st.subheader("🤖 Model Performance & Validation")
+    st.subheader("Model Performance & Validation")
     create_model_insights()
     
     # Instructions with enhanced styling
-    st.subheader("🎯 How to Get Predictions")
+    st.subheader("How to Get Predictions")
     
     st.markdown("""
     <div style="background: #f0f8ff; padding: 15px; border-radius: 8px; border-left: 4px solid #1E90FF;">
@@ -784,7 +784,7 @@ def create_model_insights():
     # Model validation metrics
     st.markdown("""
     <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 20px;">
-        <h4 style="color: #1E90FF; margin-top: 0;">🎯 Model Validation Results</h4>
+        <h4 style="color: #1E90FF; margin-top: 0;">Model Validation Results</h4>
         <div style="display: flex; justify-content: space-around; text-align: center;">
             <div>
                 <h3 style="color: #32CD32; margin: 0;">64%</h3>
