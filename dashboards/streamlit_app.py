@@ -67,23 +67,46 @@ class CSKPredictor:
         import os
         from pathlib import Path
         
-        # Set up paths
-        self.model_path = Path(model_path)
+        # Initialize fallback first
+        self._use_fallback = True
         self.model = None
         self.venue_encoder = None
         self.opponent_encoder = None
         self.feature_names = None
         
+        # Try multiple paths for model files
+        possible_paths = [
+            Path(model_path),
+            Path("models/artifacts"),
+            Path("../models/artifacts"),
+            Path("./models/artifacts"),
+            Path("models"),
+            Path("../models"),
+            Path("."),
+            Path("dashboards"),  # Same directory as streamlit app
+            Path("./dashboards"),
+            Path("../dashboards")
+        ]
+        
         # Load the real trained model and encoders
-        try:
-            self.model = joblib.load(self.model_path / "csk_best_model_random_forest.pkl")
-            self.venue_encoder = joblib.load(self.model_path / "venue_encoder.pkl")
-            self.opponent_encoder = joblib.load(self.model_path / "opponent_encoder.pkl")
-            print("✅ Real ML model loaded successfully!")
-        except Exception as e:
-            print(f"⚠️ Could not load real model: {e}")
-            # Fallback to rule-based if model loading fails
-            self._use_fallback = True
+        for path in possible_paths:
+            try:
+                model_file = path / "csk_best_model_random_forest.pkl"
+                venue_file = path / "venue_encoder.pkl"
+                opponent_file = path / "opponent_encoder.pkl"
+                
+                if model_file.exists() and venue_file.exists() and opponent_file.exists():
+                    self.model = joblib.load(model_file)
+                    self.venue_encoder = joblib.load(venue_file)
+                    self.opponent_encoder = joblib.load(opponent_file)
+                    self._use_fallback = False
+                    print(f"✅ Real ML model loaded from {path}")
+                    break
+            except Exception as e:
+                continue
+        
+        if self._use_fallback:
+            print("⚠️ Could not load real model files - using fallback")
             self._init_fallback()
     
     def _init_fallback(self):
@@ -147,7 +170,7 @@ class CSKPredictor:
         """Generate prediction using real ML model or fallback"""
         
         # Try to use real ML model first
-        if hasattr(self, 'model') and self.model is not None:
+        if not self._use_fallback and hasattr(self, 'model') and self.model is not None:
             return self._predict_with_ml_model(match_data)
         else:
             # Use fallback rule-based system
@@ -452,7 +475,7 @@ def load_prediction_model():
     for model_path in model_paths:
         try:
             pipeline = CSKPredictor(model_path)
-            if hasattr(pipeline, 'model') and pipeline.model is not None:
+            if not pipeline._use_fallback and hasattr(pipeline, 'model') and pipeline.model is not None:
                 st.success(f"✅ Real Random Forest model loaded from {model_path}")
                 model_loaded = True
                 break
@@ -462,7 +485,6 @@ def load_prediction_model():
     if not model_loaded:
         # Create fallback predictor
         pipeline = CSKPredictor()
-        pipeline._use_fallback = True
         st.warning("⚠️ Using fallback predictor - Real model files not accessible in deployment")
         st.info("💡 For full accuracy, ensure model files are available in the deployment environment")
     
@@ -481,7 +503,7 @@ def main():
         
         if loaded:
             # Check if real model is loaded
-            if hasattr(pipeline, 'model') and pipeline.model is not None:
+            if not pipeline._use_fallback and hasattr(pipeline, 'model') and pipeline.model is not None:
                 st.success("✅ Real Random Forest model loaded - Authentic predictions with 61.5% accuracy")
                 st.info("🎯 Using trained ML model on 252 historical CSK matches")
             else:
