@@ -1,1 +1,0 @@
-csk_prematch_calibrated_v1.1.0.pkl
