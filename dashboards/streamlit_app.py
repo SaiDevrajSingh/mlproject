@@ -24,10 +24,12 @@ sys.path.append(str(ROOT / "src"))
 try:
     from src.models.predict_model import CSKPredictor
     import logging
+    MODEL_AVAILABLE = True
 except ImportError as e:
-    st.error(f"Import error: {e}")
-    st.error("Make sure you're running from the project root directory")
-    st.stop()
+    st.warning(f"Main model import failed: {e}")
+    st.info("Using fallback prediction model...")
+    from fallback_predictor import FallbackPredictor
+    MODEL_AVAILABLE = False
 
 # Page configuration
 st.set_page_config(
@@ -79,13 +81,34 @@ if 'prediction_pipeline' not in st.session_state:
 @st.cache_resource
 def load_prediction_model():
     """Load the prediction model with caching"""
-    try:
-        pipeline = CSKPredictor("models")
+    if MODEL_AVAILABLE:
+        try:
+            # Try different model paths for deployment
+            model_paths = ["models", "../models", "models/artifacts", "../models/artifacts"]
+            
+            for model_path in model_paths:
+                try:
+                    pipeline = CSKPredictor(model_path)
+                    st.success(f"✅ Advanced ML model loaded from {model_path}")
+                    return pipeline, True
+                except:
+                    continue
+            
+            # If all paths fail, use fallback
+            st.warning("⚠️ Could not load advanced model, using fallback predictor")
+            pipeline = FallbackPredictor()
+            return pipeline, True
+            
+        except Exception as e:
+            st.warning(f"Advanced model failed: {str(e)}")
+            st.info("Using fallback prediction model")
+            pipeline = FallbackPredictor()
+            return pipeline, True
+    else:
+        # Use fallback predictor
+        st.info("🔄 Using rule-based prediction model")
+        pipeline = FallbackPredictor()
         return pipeline, True
-    except Exception as e:
-        st.error(f"Failed to load model: {str(e)}")
-        st.error("Make sure model files exist in the models/ directory")
-        return None, False
 
 def main():
     # Header
