@@ -37,21 +37,20 @@ class EnhancedCSKTrainer:
     def load_and_prepare_data(self):
         """Load and prepare training data with enhanced features"""
         
-        # Load IPL data
+        # Load processed CSK match data
         try:
-            df = pd.read_csv("IPL.csv")
-            print(f"✅ Loaded {len(df)} matches from IPL.csv")
+            df = pd.read_csv("data/processed/csk_match_level_data.csv")
+            print(f"✅ Loaded {len(df)} CSK matches from processed data")
+            csk_matches = df.copy()
         except:
-            print("❌ Could not load IPL.csv - creating synthetic training data")
+            print("❌ Could not load processed CSK data - creating synthetic training data")
             df = self._create_synthetic_data()
-        
-        # Filter CSK matches
-        csk_matches = df[
-            (df['team1'] == 'Chennai Super Kings') | 
-            (df['team2'] == 'Chennai Super Kings')
-        ].copy()
-        
-        print(f"📊 Found {len(csk_matches)} CSK matches")
+            # Filter CSK matches
+            csk_matches = df[
+                (df['team1'] == 'Chennai Super Kings') | 
+                (df['team2'] == 'Chennai Super Kings')
+            ].copy()
+            print(f"📊 Found {len(csk_matches)} CSK matches")
         
         # Create enhanced features
         features_df = self._create_enhanced_features(csk_matches)
@@ -101,33 +100,130 @@ class EnhancedCSKTrainer:
         
         features = []
         
+        # Calculate historical performance for each venue
+        venue_stats = self._calculate_venue_stats_processed(df)
+        
         for _, match in df.iterrows():
-            # Determine if CSK is team1 or team2
-            if match['team1'] == 'Chennai Super Kings':
-                opponent = match['team2']
-                csk_won = match['winner'] == 'Chennai Super Kings'
-            else:
-                opponent = match['team1']
-                csk_won = match['winner'] == 'Chennai Super Kings'
+            # Skip matches with missing critical data
+            if pd.isna(match.get('csk_won_match')):
+                continue
             
-            # Basic features
+            # Extract season year from season string (e.g., "2007/08" -> 2008)
+            season_str = str(match.get('season', '2020'))
+            if '/' in season_str:
+                season = int(season_str.split('/')[1]) + 2000 if int(season_str.split('/')[1]) < 50 else int(season_str.split('/')[1]) + 1900
+            else:
+                season = int(season_str)
+            
+            # For processed data, we need to infer opponent from the data structure
+            # Since this is CSK-specific data, we'll use venue and other info to create features
+            
+            # Basic features from processed data
             feature_row = {
-                'opponent': opponent,
-                'venue': match['venue'],
-                'city': match['city'],
-                'season': match['season'],
-                'toss_won': 1 if match['toss_winner'] == 'Chennai Super Kings' else 0,
-                'chose_to_bat': 1 if match['toss_decision'] == 'bat' else 0,
-                'home_match': 1 if 'chennai' in str(match['city']).lower() or 'chepauk' in str(match['venue']).lower() else 0,
-                'target': 1 if csk_won else 0
+                'venue': str(match.get('venue', 'Unknown')),
+                'city': str(match.get('city', 'Unknown')),
+                'season': season,
+                'toss_won': int(match.get('csk_won_toss', 0)),
+                'chose_to_bat': int(match.get('chose_to_bat', 0)),
+                'home_match': int(match.get('is_home_match', 0)),
+                'target': int(match.get('csk_won_match', 0))
             }
             
-            # Enhanced features
-            feature_row.update(self._add_enhanced_features(match, opponent))
+            # Add venue performance
+            feature_row['venue_win_rate'] = venue_stats.get(str(match.get('venue', 'Unknown')), 0.5)
+            
+            # Enhanced features based on available data
+            feature_row.update(self._add_enhanced_features_processed(match, season))
             
             features.append(feature_row)
         
         return pd.DataFrame(features)
+    
+    def _calculate_opponent_stats(self, df):
+        """Calculate CSK's win rate against each opponent"""
+        opponent_stats = {}
+        
+        for opponent in df['team1'].unique():
+            if opponent == 'Chennai Super Kings' or pd.isna(opponent):
+                continue
+                
+            # Get matches against this opponent
+            matches = df[
+                ((df['team1'] == 'Chennai Super Kings') & (df['team2'] == opponent)) |
+                ((df['team2'] == 'Chennai Super Kings') & (df['team1'] == opponent))
+            ]
+            
+            if len(matches) > 0:
+                wins = len(matches[matches['winner'] == 'Chennai Super Kings'])
+                win_rate = wins / len(matches)
+                opponent_stats[opponent] = win_rate
+        
+        return opponent_stats
+    
+    def _calculate_venue_stats(self, df):
+        """Calculate CSK's win rate at each venue"""
+        venue_stats = {}
+        
+        csk_matches = df[
+            (df['team1'] == 'Chennai Super Kings') | 
+            (df['team2'] == 'Chennai Super Kings')
+        ]
+        
+        for venue in csk_matches['venue'].unique():
+            if pd.isna(venue):
+                continue
+                
+            venue_matches = csk_matches[csk_matches['venue'] == venue]
+            if len(venue_matches) > 0:
+                wins = len(venue_matches[venue_matches['winner'] == 'Chennai Super Kings'])
+                win_rate = wins / len(venue_matches)
+                venue_stats[str(venue)] = win_rate
+        
+        return venue_stats
+    
+    def _calculate_venue_stats_processed(self, df):
+        """Calculate CSK's win rate at each venue from processed data"""
+        venue_stats = {}
+        
+        for venue in df['venue'].unique():
+            if pd.isna(venue):
+                continue
+                
+            venue_matches = df[df['venue'] == venue]
+            if len(venue_matches) > 0:
+                wins = len(venue_matches[venue_matches['csk_won_match'] == 1])
+                win_rate = wins / len(venue_matches)
+                venue_stats[str(venue)] = win_rate
+        
+        return venue_stats
+    
+    def _add_enhanced_features_processed(self, match, season):
+        """Add enhanced features for processed data"""
+        
+        venue = str(match.get('venue', ''))
+        city = str(match.get('city', ''))
+        
+        # Venue performance mapping
+        venue_performance = {
+            'MA Chidambaram Stadium, Chepauk': 0.78,
+            'Wankhede Stadium': 0.42,
+            'Eden Gardens': 0.55,
+            'M Chinnaswamy Stadium': 0.46,
+            'Rajiv Gandhi International Stadium': 0.62,
+            'Sawai Mansingh Stadium': 0.65,
+            'Feroz Shah Kotla': 0.57
+        }
+        
+        enhanced_features = {
+            'venue_performance': venue_performance.get(venue, 0.56),
+            'peak_season': 1 if season in [2010, 2011, 2018, 2021, 2023] else 0,
+            'recent_season': 1 if season >= 2018 else 0,
+            'dhoni_era': 1 if season <= 2023 else 0,
+            'season_normalized': (season - 2008) / (2023 - 2008) if season >= 2008 else 0,
+            'chepauk_match': 1 if 'chepauk' in venue.lower() else 0
+        }
+        
+        return enhanced_features
     
     def _add_enhanced_features(self, match, opponent):
         """Add enhanced features for better accuracy"""
@@ -341,13 +437,13 @@ def main():
     
     # Encode categorical variables
     df['venue_encoded'] = trainer.venue_encoder.fit_transform(df['venue'])
-    df['opponent_encoded'] = trainer.opponent_encoder.fit_transform(df['opponent'])
     
-    # Select features
+    # Select features (adapted for processed data)
     feature_columns = [
-        'venue_encoded', 'opponent_encoded', 'season', 'toss_won', 'chose_to_bat',
-        'home_match', 'opponent_strength', 'venue_performance', 'peak_season',
-        'recent_season', 'dhoni_era', 'season_normalized', 'rivalry_match'
+        'venue_encoded', 'season', 'toss_won', 'chose_to_bat',
+        'home_match', 'venue_performance', 'peak_season',
+        'recent_season', 'dhoni_era', 'season_normalized', 'chepauk_match',
+        'venue_win_rate'  # Historical venue performance
     ]
     
     X = df[feature_columns]
