@@ -95,10 +95,12 @@ class CSKPredictor:
             Path("./dashboards"),
             Path("../dashboards"),
             # Additional deployment paths
-            Path("/mount/src/mlproject"),  # Streamlit Cloud path
-            Path("/mount/src/mlproject/dashboards"),
+            Path("/mount/src/mlproject"),  # Streamlit Cloud root
+            Path("/mount/src/mlproject/dashboards"),  # Streamlit Cloud dashboards
+            Path("/mount/src/mlproject/models/artifacts"),  # Streamlit Cloud models
             Path("/app"),  # Docker deployment path
-            Path("/app/dashboards")
+            Path("/app/dashboards"),
+            Path("/app/models/artifacts")
         ]
         
         # Load the real trained model and encoders
@@ -133,6 +135,18 @@ class CSKPredictor:
         
         if self._use_fallback:
             print("⚠️ Could not load real model files - using fallback")
+            print(f"Searched paths: {[str(p) for p in possible_paths[:5]]}...")  # Show first 5 paths
+            # Try to list what's actually in the deployment directory
+            try:
+                import os
+                deployment_paths = ["/mount/src/mlproject", "/mount/src/mlproject/dashboards"]
+                for dp in deployment_paths:
+                    if os.path.exists(dp):
+                        files = os.listdir(dp)
+                        pkl_files = [f for f in files if f.endswith('.pkl')]
+                        print(f"Files in {dp}: {pkl_files}")
+            except:
+                pass
             self._init_fallback()
     
     def _init_fallback(self):
@@ -627,7 +641,7 @@ def main():
     predict_button = st.sidebar.button(
         "Predict Match Outcome",
         type="primary",
-        use_container_width=True
+        width="stretch"
     )
     
     # Main content area
@@ -700,7 +714,7 @@ def display_prediction_results(input_data, predicted_win, win_probability, resul
     
     # Probability gauge
     fig = create_probability_gauge(win_probability)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
     
     # Enhanced Key factors analysis with proof
     if result and result.get('key_factors'):
@@ -760,7 +774,7 @@ def display_prediction_results(input_data, predicted_win, win_probability, resul
                 yaxis_title="Factors",
                 height=300
             )
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
         
         # Detailed factor explanations
         st.markdown("### Factor Explanations")
@@ -952,7 +966,7 @@ def create_eda_visualizations():
         )
         fig.update_layout(height=400, showlegend=False)
         fig.update_traces(text=[f'{rate:.1%}' for rate in win_rates], textposition='outside')
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
     
     with col2:
         # Venue performance
@@ -966,7 +980,7 @@ def create_eda_visualizations():
         )
         fig.update_traces(textposition='inside', textinfo='percent+label')
         fig.update_layout(height=400)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
 def create_performance_charts():
     """Create performance analysis charts"""
@@ -1004,7 +1018,7 @@ def create_performance_charts():
             yaxis_title="Win Rate",
             height=400
         )
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
     
     with col2:
         # Toss vs Match Result Analysis
@@ -1025,7 +1039,7 @@ def create_performance_charts():
             yaxis_title="Number of Matches",
             height=400
         )
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
 def create_model_insights():
     """Create model performance and validation insights"""
@@ -1055,7 +1069,7 @@ def create_model_insights():
             }
         ))
         fig.update_layout(height=300)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
     
     with col2:
         # Feature importance
@@ -1070,7 +1084,7 @@ def create_model_insights():
             color_continuous_scale='Viridis'
         )
         fig.update_layout(height=300, showlegend=False)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
     
     with col3:
         # Prediction confidence distribution
@@ -1083,7 +1097,7 @@ def create_model_insights():
             color_discrete_sequence=px.colors.sequential.Blues_r
         )
         fig.update_layout(height=300)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
     
     # Real model validation metrics only
     st.markdown("""
