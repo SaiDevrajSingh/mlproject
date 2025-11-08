@@ -50,6 +50,7 @@ class SimpleCSKPredictor:
     def __init__(self):
         self.base_win_rate = 0.615  # Real model accuracy
         self.model_loaded = False
+        self.status_message = ""
         
         # Try to load real model
         self._try_load_real_model()
@@ -85,14 +86,13 @@ class SimpleCSKPredictor:
                     _ = self.model.predict_proba([test_features])
                     
                     self.model_loaded = True
-                    st.success(f"✅ Real ML Model Loaded! Accuracy: 61.5%")
+                    self.status_message = "✅ Real ML Model Loaded! Accuracy: 61.5%"
                     break
         except Exception as e:
             pass
         
         if not self.model_loaded:
-            st.warning("⚠️ Using Rule-Based Predictor (Real model not accessible)")
-            st.info("📊 Fallback accuracy: ~57%")
+            self.status_message = "⚠️ Using Rule-Based Predictor (Real model not accessible) - Fallback accuracy: ~57%"
     
     def predict(self, match_data):
         """Make prediction"""
@@ -206,6 +206,12 @@ def main():
         st.session_state.predictor = SimpleCSKPredictor()
     
     predictor = st.session_state.predictor
+    
+    # Show model status
+    if predictor.model_loaded:
+        st.success(predictor.status_message)
+    else:
+        st.info(predictor.status_message)
     
     # Sidebar inputs
     st.sidebar.header("Match Configuration")
