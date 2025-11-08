@@ -20,26 +20,151 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS
+# Custom CSS - Enhanced Premium Design
 st.markdown("""
 <style>
+    /* Main background */
+    .main {
+        background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+    }
+    
+    /* Header styling */
     .main-header {
-        font-size: 3rem;
-        color: #FFD700;
+        font-size: 4rem;
+        font-weight: 900;
         text-align: center;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-        background: linear-gradient(90deg, #FFD700, #FFA500);
+        background: linear-gradient(135deg, #FFD700 0%, #FFA500 50%, #FF8C00 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        margin-bottom: 2rem;
+        text-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
+        margin: 2rem 0 1rem 0;
+        letter-spacing: 2px;
+        animation: glow 2s ease-in-out infinite alternate;
     }
-    .prediction-card {
-        background: linear-gradient(135deg, #FFD700, #FFA500);
-        padding: 2rem;
-        border-radius: 15px;
+    
+    @keyframes glow {
+        from { filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.5)); }
+        to { filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.8)); }
+    }
+    
+    /* Subtitle styling */
+    .subtitle {
         text-align: center;
-        margin: 1rem 0;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        font-size: 1.3rem;
+        color: #B8B8B8;
+        margin-bottom: 2rem;
+        font-weight: 300;
+    }
+    
+    /* Model status card */
+    .stAlert {
+        background: linear-gradient(135deg, #1e3a5f 0%, #2d5986 100%) !important;
+        border-left: 4px solid #FFD700 !important;
+        border-radius: 12px !important;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3) !important;
+        animation: slideIn 0.5s ease-out;
+    }
+    
+    @keyframes slideIn {
+        from { transform: translateY(-20px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+    
+    /* Prediction card */
+    .prediction-card {
+        background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+        padding: 2.5rem;
+        border-radius: 20px;
+        text-align: center;
+        margin: 1.5rem 0;
+        box-shadow: 0 10px 30px rgba(255, 215, 0, 0.4);
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .prediction-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 40px rgba(255, 215, 0, 0.6);
+    }
+    
+    /* Metric cards */
+    div[data-testid="metric-container"] {
+        background: linear-gradient(135deg, #2a2a2a 0%, #3a3a3a 100%);
+        border: 1px solid #FFD700;
+        border-radius: 12px;
+        padding: 1rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+    
+    div[data-testid="metric-container"] label {
+        color: #FFD700 !important;
+        font-weight: 600;
+    }
+    
+    div[data-testid="metric-container"] [data-testid="stMetricValue"] {
+        color: #FFFFFF !important;
+        font-size: 1.8rem !important;
+    }
+    
+    /* Sidebar styling */
+    section[data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #1a1a1a 0%, #2d2d2d 100%);
+        border-right: 2px solid #FFD700;
+    }
+    
+    section[data-testid="stSidebar"] h1, 
+    section[data-testid="stSidebar"] h2, 
+    section[data-testid="stSidebar"] h3 {
+        color: #FFD700 !important;
+    }
+    
+    /* Button styling */
+    .stButton > button {
+        background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+        color: #000000;
+        font-weight: 700;
+        font-size: 1.1rem;
+        border: none;
+        border-radius: 12px;
+        padding: 0.75rem 2rem;
+        box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    
+    .stButton > button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(255, 215, 0, 0.6);
+        background: linear-gradient(135deg, #FFA500 0%, #FFD700 100%);
+    }
+    
+    /* Welcome card */
+    .welcome-card {
+        text-align: center;
+        padding: 3rem;
+        background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+        border-radius: 20px;
+        margin: 2rem 0;
+        border: 2px solid #FFD700;
+        box-shadow: 0 10px 30px rgba(255, 215, 0, 0.2);
+    }
+    
+    .welcome-card h2 {
+        color: #FFD700;
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .welcome-card p {
+        color: #B8B8B8;
+        font-size: 1.2rem;
+    }
+    
+    /* Chart containers */
+    .js-plotly-plot {
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     }
 </style>
 """, unsafe_allow_html=True)
@@ -177,29 +302,42 @@ class SimpleCSKPredictor:
 def create_gauge(value, title):
     """Create a simple gauge chart"""
     fig = go.Figure(go.Indicator(
-        mode = "gauge+number",
+        mode = "gauge+number+delta",
         value = value * 100,
         domain = {'x': [0, 1], 'y': [0, 1]},
-        title = {'text': title},
+        title = {'text': title, 'font': {'size': 20, 'color': '#FFD700'}},
+        number = {'font': {'size': 48, 'color': '#FFD700'}},
         gauge = {
-            'axis': {'range': [None, 100]},
-            'bar': {'color': "#FFD700"},
+            'axis': {'range': [None, 100], 'tickcolor': '#FFD700'},
+            'bar': {'color': "#FFD700", 'thickness': 0.8},
+            'bgcolor': 'rgba(45, 45, 45, 0.5)',
+            'bordercolor': '#FFD700',
+            'borderwidth': 2,
             'steps': [
-                {'range': [0, 50], 'color': "#FF6B6B"},
-                {'range': [50, 70], 'color': "#FFA500"},
-                {'range': [70, 100], 'color': "#32CD32"}
-            ]
+                {'range': [0, 50], 'color': "rgba(255, 107, 107, 0.3)"},
+                {'range': [50, 70], 'color': "rgba(255, 165, 0, 0.3)"},
+                {'range': [70, 100], 'color': "rgba(50, 205, 50, 0.3)"}
+            ],
+            'threshold': {
+                'line': {'color': "white", 'width': 4},
+                'thickness': 0.75,
+                'value': 50
+            }
         }
     ))
-    fig.update_layout(height=300)
+    fig.update_layout(
+        height=300,
+        paper_bgcolor='rgba(26, 26, 26, 0.8)',
+        font=dict(color='#FFFFFF')
+    )
     return fig
 
 def main():
     """Main app function"""
     
     # Header
-    st.markdown('<h1 class="main-header">CSK IPL Performance Predictor</h1>', unsafe_allow_html=True)
-    st.markdown('<p style="text-align: center; font-size: 1.2rem; color: #666;">Predict Chennai Super Kings match outcomes using advanced analytics</p>', unsafe_allow_html=True)
+    st.markdown('<h1 class="main-header">🏏 CSK IPL PERFORMANCE PREDICTOR</h1>', unsafe_allow_html=True)
+    st.markdown('<p class="subtitle">⚡ Powered by Machine Learning - Predict Chennai Super Kings Match Outcomes</p>', unsafe_allow_html=True)
     
     # Initialize predictor
     if 'predictor' not in st.session_state:
@@ -321,14 +459,15 @@ def main():
     else:
         # Default dashboard
         st.markdown("""
-        <div style="text-align: center; padding: 2rem; background: #f8f9fa; border-radius: 10px; margin: 2rem 0;">
-            <h2>Welcome to the CSK Match Predictor!</h2>
-            <p>Configure match parameters in the sidebar and click "Predict Match Outcome" to get predictions.</p>
+        <div class="welcome-card">
+            <h2>🎯 Welcome to CSK Match Predictor!</h2>
+            <p>⚙️ Configure match parameters in the sidebar and click <strong>"PREDICT MATCH OUTCOME"</strong> to get AI-powered predictions.</p>
+            <p style="margin-top: 1.5rem; font-size: 1rem; color: #888;">✨ Using Random Forest ML Model with 61.5% Accuracy</p>
         </div>
         """, unsafe_allow_html=True)
         
         # Simple analytics
-        st.subheader("CSK Performance Analytics")
+        st.markdown('<h2 style="color: #FFD700; text-align: center; margin: 2rem 0;">📊 CSK Performance Analytics</h2>', unsafe_allow_html=True)
         
         col1, col2 = st.columns(2)
         
@@ -342,8 +481,16 @@ def main():
                 title="CSK Season Performance",
                 labels={'x': 'Season', 'y': 'Win Rate'}
             )
-            fig.update_traces(line_color='#FFD700', line_width=3)
-            fig.update_layout(height=300)
+            fig.update_traces(line_color='#FFD700', line_width=4, mode='lines+markers', marker=dict(size=10))
+            fig.update_layout(
+                height=300,
+                paper_bgcolor='rgba(26, 26, 26, 0.8)',
+                plot_bgcolor='rgba(45, 45, 45, 0.5)',
+                font=dict(color='#FFFFFF'),
+                title_font=dict(color='#FFD700', size=16),
+                xaxis=dict(gridcolor='rgba(255, 215, 0, 0.1)'),
+                yaxis=dict(gridcolor='rgba(255, 215, 0, 0.1)')
+            )
             st.plotly_chart(fig, width="stretch")
         
         with col2:
@@ -357,7 +504,16 @@ def main():
                 color=performance,
                 color_continuous_scale='RdYlGn'
             )
-            fig.update_layout(height=300, showlegend=False)
+            fig.update_layout(
+                height=300,
+                showlegend=False,
+                paper_bgcolor='rgba(26, 26, 26, 0.8)',
+                plot_bgcolor='rgba(45, 45, 45, 0.5)',
+                font=dict(color='#FFFFFF'),
+                title_font=dict(color='#FFD700', size=16),
+                xaxis=dict(gridcolor='rgba(255, 215, 0, 0.1)'),
+                yaxis=dict(gridcolor='rgba(255, 215, 0, 0.1)')
+            )
             st.plotly_chart(fig, width="stretch")
 
 if __name__ == "__main__":
