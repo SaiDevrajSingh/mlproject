@@ -75,13 +75,17 @@ class CSKPredictor:
         self.feature_names = None
         
         # Get current script directory for relative paths
-        current_dir = Path(__file__).parent if hasattr(Path(__file__), 'parent') else Path('.')
+        try:
+            current_dir = Path(__file__).parent
+        except:
+            current_dir = Path('.')
         
-        # Try multiple paths for model files (prioritize local directory)
+        # Try multiple paths for model files (prioritize deployment-friendly paths)
         possible_paths = [
             current_dir,  # Same directory as this script
-            Path("."),  # Current working directory
+            Path("."),  # Current working directory (Streamlit Cloud default)
             Path("dashboards"),  # Dashboards folder
+            current_dir.parent,  # Parent directory
             Path(model_path),  # Provided path
             Path("models/artifacts"),
             Path("../models/artifacts"),
@@ -89,7 +93,12 @@ class CSKPredictor:
             Path("models"),
             Path("../models"),
             Path("./dashboards"),
-            Path("../dashboards")
+            Path("../dashboards"),
+            # Additional deployment paths
+            Path("/mount/src/mlproject"),  # Streamlit Cloud path
+            Path("/mount/src/mlproject/dashboards"),
+            Path("/app"),  # Docker deployment path
+            Path("/app/dashboards")
         ]
         
         # Load the real trained model and encoders
@@ -100,12 +109,24 @@ class CSKPredictor:
                 opponent_file = path / "opponent_encoder.pkl"
                 
                 if model_file.exists() and venue_file.exists() and opponent_file.exists():
-                    self.model = joblib.load(model_file)
-                    self.venue_encoder = joblib.load(venue_file)
-                    self.opponent_encoder = joblib.load(opponent_file)
-                    self._use_fallback = False
-                    print(f"✅ Real ML model loaded from {path}")
-                    break
+                    # Try to load with version compatibility warnings suppressed
+                    import warnings
+                    with warnings.catch_warnings():
+                        warnings.filterwarnings("ignore", category=UserWarning)
+                        self.model = joblib.load(model_file)
+                        self.venue_encoder = joblib.load(venue_file)
+                        self.opponent_encoder = joblib.load(opponent_file)
+                    
+                    # Test if model works by making a dummy prediction
+                    try:
+                        test_features = [0] * 11  # 11 dummy features
+                        _ = self.model.predict_proba([test_features])
+                        self._use_fallback = False
+                        print(f"✅ Real ML model loaded and verified from {path}")
+                        break
+                    except Exception as test_e:
+                        print(f"Model loaded but failed verification: {test_e}")
+                        continue
             except Exception as e:
                 print(f"Failed to load from {path}: {e}")
                 continue
