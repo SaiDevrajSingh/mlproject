@@ -74,16 +74,20 @@ class CSKPredictor:
         self.opponent_encoder = None
         self.feature_names = None
         
-        # Try multiple paths for model files
+        # Get current script directory for relative paths
+        current_dir = Path(__file__).parent if hasattr(Path(__file__), 'parent') else Path('.')
+        
+        # Try multiple paths for model files (prioritize local directory)
         possible_paths = [
-            Path(model_path),
+            current_dir,  # Same directory as this script
+            Path("."),  # Current working directory
+            Path("dashboards"),  # Dashboards folder
+            Path(model_path),  # Provided path
             Path("models/artifacts"),
             Path("../models/artifacts"),
             Path("./models/artifacts"),
             Path("models"),
             Path("../models"),
-            Path("."),
-            Path("dashboards"),  # Same directory as streamlit app
             Path("./dashboards"),
             Path("../dashboards")
         ]
@@ -103,6 +107,7 @@ class CSKPredictor:
                     print(f"✅ Real ML model loaded from {path}")
                     break
             except Exception as e:
+                print(f"Failed to load from {path}: {e}")
                 continue
         
         if self._use_fallback:
@@ -216,6 +221,9 @@ class CSKPredictor:
             
         except Exception as e:
             print(f"ML model prediction failed: {e}")
+            # Initialize fallback if not already done
+            if not hasattr(self, 'base_win_rate'):
+                self._init_fallback()
             return self._predict_with_fallback(match_data)
     
     def _prepare_features(self, match_data):
@@ -237,7 +245,7 @@ class CSKPredictor:
         except:
             opponent_encoded = 0  # Default for unknown opponents
         
-        # Create feature vector (adjust based on your model's training features)
+        # Create feature vector to match the 11 features the model expects
         features = [
             venue_encoded,
             opponent_encoded,
@@ -246,7 +254,11 @@ class CSKPredictor:
             1 if match_data.get('toss_decision') == 'bat' else 0,
             match_data.get('match_number', 8),
             1 if match_data.get('stage') in ['qualifier1', 'qualifier2', 'eliminator', 'final'] else 0,
-            1 if 'chennai' in match_data.get('city', '').lower() else 0  # Home advantage
+            1 if 'chennai' in match_data.get('city', '').lower() else 0,  # Home advantage
+            # Add 3 more features to match expected 11 features
+            0.56,  # Historical win rate placeholder
+            0.65 if 'chennai' in match_data.get('city', '').lower() else 0.50,  # Venue performance
+            1 if match_data.get('season', 2024) in [2010, 2011, 2018, 2021, 2023] else 0  # Peak season
         ]
         
         return features
